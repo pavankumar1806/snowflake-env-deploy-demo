@@ -22,7 +22,7 @@ jobs:
           pip install snowflake-cli-labs
           snow --version
 
-      # 3. Set environment based on branch
+      # 3. Set environment (DEV / PROD)
       - name: Set Environment
         run: |
           if [ "${{ github.ref_name }}" = "dev" ]; then
@@ -31,28 +31,20 @@ jobs:
             echo "ENV=PROD" >> $GITHUB_ENV
           fi
 
-      # 4. Deploy SQL to Snowflake
+      # 4. Deploy SQL (NON-INTERACTIVE)
       - name: Deploy to Snowflake
         env:
-          SF_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
-          SF_USER: ${{ secrets.SF_USER }}
-          SF_PASSWORD: ${{ secrets.SF_PASSWORD }}
-          SF_WAREHOUSE: ${{ secrets.SF_WAREHOUSE }}
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SF_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SF_PASSWORD }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SF_WAREHOUSE }}
+          SNOWFLAKE_ROLE: ACCOUNTADMIN
         run: |
           echo "Deploying to environment: $ENV"
 
           # Replace ENV placeholder
           sed "s/{{ENV}}/$ENV/g" sql/01_database.sql > deploy_final.sql
 
-          # Create DEFAULT Snowflake CLI connection (NO name!)
-          snow connection add \
-            --account $SF_ACCOUNT \
-            --username $SF_USER \
-            --password $SF_PASSWORD \
-            --warehouse $SF_WAREHOUSE \
-            --rolename ACCOUNTADMIN \
-            --authenticator snowflake
-
-          # Execute SQL using default connection
+          # Execute SQL directly (no connection creation)
           snow sql \
             --filename deploy_final.sql
