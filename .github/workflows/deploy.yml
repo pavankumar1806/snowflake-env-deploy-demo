@@ -44,17 +44,15 @@ jobs:
           # Replace ENV placeholder
           sed "s/{{ENV}}/$ENV/g" sql/01_database.sql > deploy_final.sql
 
-          # Create Snowflake CLI connection (CORRECT syntax)
+          # Create DEFAULT Snowflake CLI connection (NO name!)
           snow connection add \
-            --name default \
             --account $SF_ACCOUNT \
-            --user $SF_USER \
+            --username $SF_USER \
             --password $SF_PASSWORD \
             --warehouse $SF_WAREHOUSE \
-            --role ACCOUNTADMIN \
+            --rolename ACCOUNTADMIN \
             --authenticator snowflake
 
-          # Execute SQL
+          # Execute SQL using default connection
           snow sql \
-            --connection default \
             --filename deploy_final.sql
