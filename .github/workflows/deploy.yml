@@ -31,7 +31,7 @@ jobs:
             echo "ENV=PROD" >> $GITHUB_ENV
           fi
 
-      # 4. Deploy SQL
+      # 4. Deploy SQL to Snowflake
       - name: Deploy to Snowflake
         env:
           SF_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
@@ -44,15 +44,15 @@ jobs:
           # Replace ENV placeholder
           sed "s/{{ENV}}/$ENV/g" sql/01_database.sql > deploy_final.sql
 
-          # Create Snowflake CLI connection (name LAST)
+          # Create Snowflake CLI connection (CORRECT syntax)
           snow connection add \
+            --name default \
             --account $SF_ACCOUNT \
             --user $SF_USER \
             --password $SF_PASSWORD \
             --warehouse $SF_WAREHOUSE \
             --role ACCOUNTADMIN \
-            --authenticator snowflake \
-            default
+            --authenticator snowflake
 
           # Execute SQL
           snow sql \
