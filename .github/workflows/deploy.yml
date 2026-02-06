@@ -11,19 +11,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout source code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Install SnowSQL (FIXED - follows redirects)
-      - name: Install SnowSQL
+      - name: Install SnowSQL (Official)
         run: |
-          curl -L https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-linux_x86_64 -o snowsql
-          chmod +x snowsql
-          sudo mv snowsql /usr/local/bin/snowsql
+          curl -L https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/snowsql-bootstrap.sh -o snowsql-bootstrap.sh
+          bash snowsql-bootstrap.sh
+          echo "$HOME/.snowsql" >> $GITHUB_PATH
           snowsql --version
 
-      # 3. Decide environment based on branch
       - name: Set Environment
         run: |
           if [ "${{ github.ref_name }}" = "dev" ]; then
@@ -32,7 +29,6 @@ jobs:
             echo "ENV=PROD" >> $GITHUB_ENV
           fi
 
-      # 4. Deploy single SQL file
       - name: Deploy to Snowflake
         env:
           SF_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
@@ -40,7 +36,7 @@ jobs:
           SF_PASSWORD: ${{ secrets.SF_PASSWORD }}
           SF_WAREHOUSE: ${{ secrets.SF_WAREHOUSE }}
         run: |
-          echo "Deploying to environment: $ENV"
+          echo "Deploying to $ENV"
           sed "s/{{ENV}}/$ENV/g" deploy.sql | \
           snowsql \
             -a $SF_ACCOUNT \
