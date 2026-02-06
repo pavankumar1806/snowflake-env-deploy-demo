@@ -1,0 +1,47 @@
+name: Single SQL Snowflake Deploy (Env Secrets)
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    environment: ${{ github.ref_name == 'dev' && 'DEV' || 'PROD' }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install SnowSQL
+        run: |
+          curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-linux_x86_64
+          chmod +x snowsql-linux_x86_64
+          sudo mv snowsql-linux_x86_64 /usr/local/bin/snowsql
+
+      - name: Set ENV Value
+        run: |
+          if [ "${{ github.ref_name }}" = "dev" ]; then
+            echo "ENV=DEV" >> $GITHUB_ENV
+          else
+            echo "ENV=PROD" >> $GITHUB_ENV
+          fi
+
+      - name: Run deploy.sql
+        env:
+          SF_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
+          SF_USER: ${{ secrets.SF_USER }}
+          SF_PASSWORD: ${{ secrets.SF_PASSWORD }}
+          SF_WAREHOUSE: ${{ secrets.SF_WAREHOUSE }}
+        run: |
+          sed "s/{{ENV}}/$ENV/g" deploy.sql | \
+          snowsql \
+            -a $SF_ACCOUNT \
+            -u $SF_USER \
+            -p $SF_PASSWORD \
+            -w $SF_WAREHOUSE \
+            -r ACCOUNTADMIN \
+            -f -
