@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code
+      # 1. Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -22,7 +22,7 @@ jobs:
           pip install snowflake-cli-labs
           snow --version
 
-      # 3. Set environment (DEV or PROD)
+      # 3. Set environment based on branch
       - name: Set Environment
         run: |
           if [ "${{ github.ref_name }}" = "dev" ]; then
@@ -31,7 +31,7 @@ jobs:
             echo "ENV=PROD" >> $GITHUB_ENV
           fi
 
-      # 4. Deploy SQL to Snowflake
+      # 4. Deploy SQL
       - name: Deploy to Snowflake
         env:
           SF_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
@@ -44,14 +44,15 @@ jobs:
           # Replace ENV placeholder
           sed "s/{{ENV}}/$ENV/g" sql/01_database.sql > deploy_final.sql
 
-          # Create Snowflake CLI connection
-          snow connection add default \
+          # Create Snowflake CLI connection (name LAST)
+          snow connection add \
             --account $SF_ACCOUNT \
             --user $SF_USER \
             --password $SF_PASSWORD \
             --warehouse $SF_WAREHOUSE \
             --role ACCOUNTADMIN \
-            --authenticator snowflake
+            --authenticator snowflake \
+            default
 
           # Execute SQL
           snow sql \
