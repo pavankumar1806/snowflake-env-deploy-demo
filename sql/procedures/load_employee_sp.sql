@@ -1,0 +1,21 @@
+CREATE OR REPLACE PROCEDURE {{ENV}}_DEMO_DB.PUBLIC.LOAD_EMPLOYEE_SP()
+RETURNS STRING
+LANGUAGE SQL
+EXECUTE AS OWNER
+AS
+$$
+BEGIN
+    -- Example insert logic
+    INSERT INTO {{ENV}}_DEMO_DB.PUBLIC.EMPLOYEE (
+        EMP_ID,
+        EMP_NAME,
+        DEPARTMENT,
+        CREATED_AT
+    )
+    VALUES
+        (1, 'Alice', 'IT', CURRENT_TIMESTAMP),
+        (2, 'Bob', 'HR', CURRENT_TIMESTAMP);
+
+    RETURN 'EMPLOYEE data loaded successfully';
+END;
+$$;
