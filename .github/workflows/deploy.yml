@@ -1,4 +1,4 @@
-name: Snowflake Deployment (DEV / PROD)
+name: Snowflake Object Deployment (DEV / PROD)
 
 on:
   push:
@@ -11,18 +11,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Install Snowflake CLI
       - name: Install Snowflake CLI
         run: |
           python3 -m pip install --upgrade pip
           pip install snowflake-cli-labs
           snow --version
 
-      # 3. Set environment based on branch
       - name: Set deployment environment
         run: |
           if [ "${{ github.ref_name }}" = "dev" ]; then
@@ -31,7 +28,6 @@ jobs:
             echo "ENV=PROD" >> $GITHUB_ENV
           fi
 
-      # 4. Configure Snowflake CLI (non-interactive)
       - name: Configure Snowflake connection
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
@@ -40,7 +36,6 @@ jobs:
           SNOWFLAKE_WAREHOUSE: ${{ secrets.SF_WAREHOUSE }}
         run: |
           mkdir -p ~/.snowflake
-
           cat <<EOF > ~/.snowflake/config.toml
           [connections.default]
           account = "$SNOWFLAKE_ACCOUNT"
@@ -50,19 +45,23 @@ jobs:
           role = "ACCOUNTADMIN"
           authenticator = "snowflake"
           EOF
-
           chmod 0600 ~/.snowflake/config.toml
 
-      # 5. Deploy all SQL files
-      - name: Deploy SQL objects
+      - name: Deploy Snowflake objects
         run: |
-          echo "Deploying to environment: $ENV"
+          echo "Deploying objects to $ENV environment"
 
-          for file in sql/*.sql; do
-            echo "Running $file"
-            sed "s/{{ENV}}/$ENV/g" "$file" > deploy_final.sql
+          for folder in tables views stages procedures; do
+            if [ -d "sql/$folder" ]; then
+              echo "Deploying $folder"
 
-            snow sql \
-              --connection default \
-              --filename deploy_final.sql
+              for file in sql/$folder/*.sql; do
+                echo "Running $file"
+                sed "s/{{ENV}}/$ENV/g" "$file" > deploy_final.sql
+
+                snow sql \
+                  --connection default \
+                  --filename deploy_final.sql
+              done
+            fi
           done
