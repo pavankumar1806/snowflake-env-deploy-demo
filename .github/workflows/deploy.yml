@@ -41,7 +41,7 @@ jobs:
         run: |
           echo "Deploying to $ENV"
 
-          sed "s/{{ENV}}/$ENV/g" deploy.sql > deploy_final.sql
+          sed "s/{{ENV}}/$ENV/g" sql/01_database.sql > deploy_final.sql
 
           snow sql \
             --account $SF_ACCOUNT \
