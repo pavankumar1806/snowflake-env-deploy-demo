@@ -1,4 +1,4 @@
-name: Snowflake Single SQL Deploy (DEV / PROD)
+name: Snowflake Deploy Demo (DEV / PROD)
 
 on:
   push:
@@ -11,11 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code
-      - name: Checkout repository
+      # 1. Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Install Snowflake CLI using pip (RELIABLE)
+      # 2. Install Snowflake CLI (reliable via pip)
       - name: Install Snowflake CLI
         run: |
           python3 -m pip install --upgrade pip
@@ -31,7 +31,7 @@ jobs:
             echo "ENV=PROD" >> $GITHUB_ENV
           fi
 
-      # 4. Run SQL using Snowflake CLI
+      # 4. Deploy SQL to Snowflake
       - name: Deploy to Snowflake
         env:
           SF_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
@@ -39,14 +39,22 @@ jobs:
           SF_PASSWORD: ${{ secrets.SF_PASSWORD }}
           SF_WAREHOUSE: ${{ secrets.SF_WAREHOUSE }}
         run: |
-          echo "Deploying to $ENV"
+          echo "Deploying to environment: $ENV"
 
+          # Replace ENV placeholder in SQL
           sed "s/{{ENV}}/$ENV/g" sql/01_database.sql > deploy_final.sql
 
-          snow sql \
+          # Create Snowflake CLI connection (temporary, job-scoped)
+          snow connection add default \
             --account $SF_ACCOUNT \
             --user $SF_USER \
             --password $SF_PASSWORD \
             --warehouse $SF_WAREHOUSE \
             --role ACCOUNTADMIN \
+            --authenticator snowflake \
+            --overwrite
+
+          # Execute SQL
+          snow sql \
+            --connection default \
             --filename deploy_final.sql
