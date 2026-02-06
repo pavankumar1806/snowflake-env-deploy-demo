@@ -11,16 +11,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install SnowSQL (Official)
+      # 2. Install Snowflake CLI using pip (RELIABLE)
+      - name: Install Snowflake CLI
         run: |
-          curl -L https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/snowsql-bootstrap.sh -o snowsql-bootstrap.sh
-          bash snowsql-bootstrap.sh
-          echo "$HOME/.snowsql" >> $GITHUB_PATH
-          snowsql --version
+          python3 -m pip install --upgrade pip
+          pip install snowflake-cli-labs
+          snow --version
 
+      # 3. Decide environment based on branch
       - name: Set Environment
         run: |
           if [ "${{ github.ref_name }}" = "dev" ]; then
@@ -29,6 +31,7 @@ jobs:
             echo "ENV=PROD" >> $GITHUB_ENV
           fi
 
+      # 4. Run SQL using Snowflake CLI
       - name: Deploy to Snowflake
         env:
           SF_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
@@ -37,11 +40,13 @@ jobs:
           SF_WAREHOUSE: ${{ secrets.SF_WAREHOUSE }}
         run: |
           echo "Deploying to $ENV"
-          sed "s/{{ENV}}/$ENV/g" deploy.sql | \
-          snowsql \
-            -a $SF_ACCOUNT \
-            -u $SF_USER \
-            -p $SF_PASSWORD \
-            -w $SF_WAREHOUSE \
-            -r ACCOUNTADMIN \
-            -f -
+
+          sed "s/{{ENV}}/$ENV/g" deploy.sql > deploy_final.sql
+
+          snow sql \
+            --account $SF_ACCOUNT \
+            --user $SF_USER \
+            --password $SF_PASSWORD \
+            --warehouse $SF_WAREHOUSE \
+            --role ACCOUNTADMIN \
+            --file deploy_final.sql
