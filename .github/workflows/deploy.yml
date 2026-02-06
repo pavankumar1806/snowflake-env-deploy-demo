@@ -1,4 +1,4 @@
-name: Snowflake Deploy Demo (DEV / PROD)
+name: Snowflake Deployment (DEV / PROD)
 
 on:
   push:
@@ -11,8 +11,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repository
-      - name: Checkout code
+      # 1. Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       # 2. Install Snowflake CLI
@@ -22,8 +22,8 @@ jobs:
           pip install snowflake-cli-labs
           snow --version
 
-      # 3. Set environment (DEV / PROD)
-      - name: Set Environment
+      # 3. Set environment based on branch
+      - name: Set deployment environment
         run: |
           if [ "${{ github.ref_name }}" = "dev" ]; then
             echo "ENV=DEV" >> $GITHUB_ENV
@@ -31,8 +31,8 @@ jobs:
             echo "ENV=PROD" >> $GITHUB_ENV
           fi
 
-      # 4. Configure Snowflake CLI connection (NON-INTERACTIVE & SECURE)
-      - name: Configure Snowflake CLI connection
+      # 4. Configure Snowflake CLI (non-interactive)
+      - name: Configure Snowflake connection
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SF_USER }}
@@ -40,6 +40,7 @@ jobs:
           SNOWFLAKE_WAREHOUSE: ${{ secrets.SF_WAREHOUSE }}
         run: |
           mkdir -p ~/.snowflake
+
           cat <<EOF > ~/.snowflake/config.toml
           [connections.default]
           account = "$SNOWFLAKE_ACCOUNT"
@@ -52,13 +53,16 @@ jobs:
 
           chmod 0600 ~/.snowflake/config.toml
 
-      # 5. Deploy SQL
-      - name: Deploy to Snowflake
+      # 5. Deploy all SQL files
+      - name: Deploy SQL objects
         run: |
           echo "Deploying to environment: $ENV"
 
-          sed "s/{{ENV}}/$ENV/g" sql/01_database.sql > deploy_final.sql
+          for file in sql/*.sql; do
+            echo "Running $file"
+            sed "s/{{ENV}}/$ENV/g" "$file" > deploy_final.sql
 
-          snow sql \
-            --connection default \
-            --filename deploy_final.sql
+            snow sql \
+              --connection default \
+              --filename deploy_final.sql
+          done
