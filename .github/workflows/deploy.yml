@@ -1,4 +1,4 @@
-name: Single SQL Snowflake Deploy (Env Secrets)
+name: Snowflake Single SQL Deploy (DEV / PROD)
 
 on:
   push:
@@ -10,19 +10,21 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    environment: ${{ github.ref_name == 'dev' && 'DEV' || 'PROD' }}
-
     steps:
-      - name: Checkout Code
+      # 1. Checkout source code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. Install SnowSQL (FIXED - follows redirects)
       - name: Install SnowSQL
         run: |
-          curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-linux_x86_64
-          chmod +x snowsql-linux_x86_64
-          sudo mv snowsql-linux_x86_64 /usr/local/bin/snowsql
+          curl -L https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-linux_x86_64 -o snowsql
+          chmod +x snowsql
+          sudo mv snowsql /usr/local/bin/snowsql
+          snowsql --version
 
-      - name: Set ENV Value
+      # 3. Decide environment based on branch
+      - name: Set Environment
         run: |
           if [ "${{ github.ref_name }}" = "dev" ]; then
             echo "ENV=DEV" >> $GITHUB_ENV
@@ -30,13 +32,15 @@ jobs:
             echo "ENV=PROD" >> $GITHUB_ENV
           fi
 
-      - name: Run deploy.sql
+      # 4. Deploy single SQL file
+      - name: Deploy to Snowflake
         env:
           SF_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
           SF_USER: ${{ secrets.SF_USER }}
           SF_PASSWORD: ${{ secrets.SF_PASSWORD }}
           SF_WAREHOUSE: ${{ secrets.SF_WAREHOUSE }}
         run: |
+          echo "Deploying to environment: $ENV"
           sed "s/{{ENV}}/$ENV/g" deploy.sql | \
           snowsql \
             -a $SF_ACCOUNT \
