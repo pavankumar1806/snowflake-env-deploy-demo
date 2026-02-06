@@ -49,4 +49,4 @@ jobs:
             --password $SF_PASSWORD \
             --warehouse $SF_WAREHOUSE \
             --role ACCOUNTADMIN \
-            --file deploy_final.sql
+            --filename deploy_final.sql
